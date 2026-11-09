@@ -1,7 +1,7 @@
 import os
 import webbrowser
 
-html_content = """<!DOCTYPE html>
+html_content = r"""<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -63,7 +63,7 @@ html_content = """<!DOCTYPE html>
         .item-note-input { width: 100%; padding: 6px 10px; border: 1px dashed #cbd5e1; border-radius: 6px; font-size: 0.85rem; background: rgba(255,255,255,0.8); display: none; }
         .item-row.active .item-note-input { display: block; }
 
-        .preview-box { width: 100%; min-height: 150px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 0.9rem; resize: vertical; margin-bottom: 10px; background: #f9fafb; line-height: 1.4; }
+        .preview-box { width: 100%; min-height: 180px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-family: monospace; font-size: 0.95rem; resize: vertical; margin-bottom: 10px; background: #f9fafb; line-height: 1.5; white-space: pre; }
         .bottom-actions { display: flex; gap: 8px; flex-wrap: wrap; }
         .btn-copy { background: var(--success); color: white; flex: 2; min-width: 180px; }
         .btn-reset { background: #e5e7eb; color: var(--text); flex: 1; }
@@ -107,8 +107,8 @@ html_content = """<!DOCTYPE html>
     <div id="itemsContainer"></div>
 
     <div class="card">
-        <div style="font-weight: 700; margin-bottom: 8px; font-size: 0.95rem;">Готовое сообщение в группу:</div>
-        <textarea id="outputText" class="preview-box" readonly placeholder="Отметьте недостающие позиции выше (кнопкой «Нужно» или «+»), чтобы сформировать список..."></textarea>
+        <div style="font-weight: 700; margin-bottom: 8px; font-size: 0.95rem;">Готовое сообщение в группу (колонкой):</div>
+        <textarea id="outputText" class="preview-box" readonly placeholder="Отметьте недостающие позиции выше, и здесь появится ровный список в столбик..."></textarea>
         <div class="bottom-actions">
             <button class="btn-copy" onclick="copyToClipboard()">📋 Скопировать в буфер</button>
             <button class="btn-reset" onclick="resetCurrentCheck()">Очистить выбор</button>
@@ -117,7 +117,7 @@ html_content = """<!DOCTYPE html>
     </div>
 </div>
 
-<div id="toast" class="toast">Скопировано! Можно отправлять в чат 🚀</div>
+<div id="toast" class="toast">Скопировано в буфер! 🚀</div>
 
 <script>
     const defaultItems = [
@@ -171,7 +171,7 @@ html_content = """<!DOCTYPE html>
         { id: 701, category: '7. Касса', name: 'Размен в кассу', hint: 'если там только большие купюры', needed: false, qty: 0, note: '' }
     ];
 
-    const STORAGE_KEY = 'zakup_v2_items';
+    const STORAGE_KEY = 'zakup_v3_items';
     let items = JSON.parse(localStorage.getItem(STORAGE_KEY)) || defaultItems;
 
     function saveToStorage() {
@@ -339,8 +339,9 @@ html_content = """<!DOCTYPE html>
             return;
         }
 
+        const NL = String.fromCharCode(10);
         const dateStr = new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
-        let text = `🛒 ЗАКУП (${dateStr}):\\n\\n`;
+        const lines = [`Закуп (${dateStr}):`, ''];
 
         activeItems.forEach((item, index) => {
             let line = `${index + 1}. ${item.name}`;
@@ -350,10 +351,10 @@ html_content = """<!DOCTYPE html>
             if (item.note) {
                 line += ` (${item.note})`;
             }
-            text += line + '\\n';
+            lines.push(line);
         });
 
-        document.getElementById('outputText').value = text.trim();
+        document.getElementById('outputText').value = lines.join(NL);
     }
 
     function copyToClipboard() {
@@ -377,3 +378,12 @@ html_content = """<!DOCTYPE html>
 
 </body>
 </html>"""
+
+desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
+file_path = os.path.join(desktop_path, "zakup.html")
+
+with open(file_path, "w", encoding="utf-8") as f:
+    f.write(html_content)
+
+print(f"Готово! Обновленный файл сохранен: {file_path}")
+webbrowser.open(f"file://{file_path}")
