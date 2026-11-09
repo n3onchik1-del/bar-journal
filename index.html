@@ -63,7 +63,7 @@ html_content = r"""<!DOCTYPE html>
         .item-note-input { width: 100%; padding: 6px 10px; border: 1px dashed #cbd5e1; border-radius: 6px; font-size: 0.85rem; background: rgba(255,255,255,0.8); display: none; }
         .item-row.active .item-note-input { display: block; }
 
-        .preview-box { width: 100%; min-height: 180px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-family: monospace; font-size: 0.95rem; resize: vertical; margin-bottom: 10px; background: #f9fafb; line-height: 1.5; white-space: pre; }
+        .preview-box { width: 100%; min-height: 180px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-family: monospace; font-size: 0.95rem; resize: vertical; margin-bottom: 10px; background: #f9fafb; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
         .bottom-actions { display: flex; gap: 8px; flex-wrap: wrap; }
         .btn-copy { background: var(--success); color: white; flex: 2; min-width: 180px; }
         .btn-reset { background: #e5e7eb; color: var(--text); flex: 1; }
@@ -171,7 +171,7 @@ html_content = r"""<!DOCTYPE html>
         { id: 701, category: '7. Касса', name: 'Размен в кассу', hint: 'если там только большие купюры', needed: false, qty: 0, note: '' }
     ];
 
-    const STORAGE_KEY = 'zakup_v3_items';
+    const STORAGE_KEY = 'zakup_v4_items';
     let items = JSON.parse(localStorage.getItem(STORAGE_KEY)) || defaultItems;
 
     function saveToStorage() {
@@ -339,7 +339,7 @@ html_content = r"""<!DOCTYPE html>
             return;
         }
 
-        const NL = String.fromCharCode(10);
+        const NL = "\r\n"; // Гарантированный перенос строки для всех систем
         const dateStr = new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
         const lines = [`Закуп (${dateStr}):`, ''];
 
@@ -385,5 +385,5 @@ file_path = os.path.join(desktop_path, "zakup.html")
 with open(file_path, "w", encoding="utf-8") as f:
     f.write(html_content)
 
-print(f"Готово! Обновленный файл сохранен: {file_path}")
+print(f"Готово! Исправленный файл сохранен: {file_path}")
 webbrowser.open(f"file://{file_path}")
