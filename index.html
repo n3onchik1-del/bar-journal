@@ -1,0 +1,379 @@
+import os
+import webbrowser
+
+html_content = """<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ревизия и Закуп</title>
+    <style>
+        :root {
+            --bg: #f3f4f6;
+            --card: #ffffff;
+            --primary: #2563eb;
+            --primary-light: #eff6ff;
+            --success: #10b981;
+            --danger: #ef4444;
+            --text: #111827;
+            --muted: #6b7280;
+            --hint: #d97706;
+            --border: #e5e7eb;
+        }
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background: var(--bg); color: var(--text); margin: 0; padding: 12px; padding-bottom: 90px; }
+        .container { max-width: 620px; margin: 0 auto; }
+        
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        h1 { font-size: 1.25rem; margin: 0; }
+        .badge { background: var(--primary); color: white; padding: 4px 10px; border-radius: 99px; font-size: 0.8rem; font-weight: 600; }
+
+        .card { background: var(--card); border-radius: 12px; padding: 14px; margin-bottom: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        
+        details summary { cursor: pointer; font-weight: 600; color: var(--primary); font-size: 0.95rem; outline: none; }
+        .add-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; margin-bottom: 8px; }
+        .add-grid input { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; }
+        .full-width { grid-column: 1 / -1; }
+        
+        button { cursor: pointer; border: none; border-radius: 8px; padding: 10px 14px; font-size: 0.9rem; font-weight: 600; transition: 0.15s; }
+        .btn-primary { background: var(--primary); color: white; width: 100%; }
+        
+        .search-bar { width: 100%; padding: 11px 14px; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 14px; font-size: 0.95rem; background: var(--card); }
+
+        .category-block { margin-bottom: 18px; }
+        .category-title { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; color: var(--muted); margin: 0 0 8px 4px; letter-spacing: 0.03em; }
+        
+        .item-row { display: flex; flex-direction: column; gap: 8px; background: var(--card); padding: 11px 12px; border-radius: 10px; margin-bottom: 7px; border: 1.5px solid var(--border); transition: 0.15s; }
+        .item-row.active { border-color: var(--primary); background: var(--primary-light); }
+        
+        .item-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+        .item-info { flex: 1; cursor: pointer; }
+        .item-name { font-weight: 600; font-size: 0.95rem; line-height: 1.3; }
+        .item-hint { font-size: 0.8rem; color: var(--hint); margin-top: 2px; font-weight: 500; }
+        
+        .item-controls { display: flex; align-items: center; gap: 5px; }
+        .check-btn { background: #e5e7eb; color: var(--text); height: 34px; padding: 0 10px; border-radius: 7px; font-size: 0.85rem; }
+        .item-row.active .check-btn { background: var(--primary); color: white; }
+        
+        .qty-btn { background: #e5e7eb; color: var(--text); width: 32px; height: 34px; padding: 0; border-radius: 7px; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; }
+        .qty-input { width: 52px; height: 34px; text-align: center; border: 1px solid var(--border); border-radius: 7px; font-size: 0.95rem; font-weight: 600; background: white; }
+        .del-btn { background: transparent; color: #9ca3af; padding: 4px; font-size: 1rem; margin-left: 2px; }
+        .del-btn:hover { color: var(--danger); }
+
+        .item-note-input { width: 100%; padding: 6px 10px; border: 1px dashed #cbd5e1; border-radius: 6px; font-size: 0.85rem; background: rgba(255,255,255,0.8); display: none; }
+        .item-row.active .item-note-input { display: block; }
+
+        .preview-box { width: 100%; min-height: 150px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 0.9rem; resize: vertical; margin-bottom: 10px; background: #f9fafb; line-height: 1.4; }
+        .bottom-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .btn-copy { background: var(--success); color: white; flex: 2; min-width: 180px; }
+        .btn-reset { background: #e5e7eb; color: var(--text); flex: 1; }
+        .btn-restore { background: transparent; color: var(--muted); font-size: 0.8rem; width: 100%; text-align: center; margin-top: 8px; text-decoration: underline; }
+
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #111827; color: white; padding: 12px 22px; border-radius: 99px; font-size: 0.9rem; font-weight: 500; opacity: 0; pointer-events: none; transition: 0.25s; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .toast.show { opacity: 1; bottom: 30px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>📋 Чек-лист закупа</h1>
+        <span id="counter" class="badge">В списке: 0</span>
+    </header>
+
+    <div class="card">
+        <details>
+            <summary>+ Добавить свою позицию в шаблон</summary>
+            <div class="add-grid">
+                <input type="text" id="newName" class="full-width" placeholder="Название (напр. Молоко)">
+                <input type="text" id="newCat" list="catList" placeholder="Локация / Отдел">
+                <datalist id="catList">
+                    <option value="1. Морозилка">
+                    <option value="2. Большой стеллаж">
+                    <option value="3. Барный холодильник">
+                    <option value="4. Стеллаж в подсобке справа">
+                    <option value="5. Холодильник с напитками">
+                    <option value="6. Серая тумбочка (верхний ящик)">
+                    <option value="7. Касса">
+                </datalist>
+                <input type="text" id="newHint" placeholder="Условие (напр. если меньше 2)">
+            </div>
+            <button class="btn-primary" onclick="addNewItem()">Сохранить в шаблон</button>
+        </details>
+    </div>
+
+    <input type="text" id="searchInput" class="search-bar" placeholder="🔍 Поиск по позициям или локациям..." oninput="renderList()">
+
+    <div id="itemsContainer"></div>
+
+    <div class="card">
+        <div style="font-weight: 700; margin-bottom: 8px; font-size: 0.95rem;">Готовое сообщение в группу:</div>
+        <textarea id="outputText" class="preview-box" readonly placeholder="Отметьте недостающие позиции выше (кнопкой «Нужно» или «+»), чтобы сформировать список..."></textarea>
+        <div class="bottom-actions">
+            <button class="btn-copy" onclick="copyToClipboard()">📋 Скопировать в буфер</button>
+            <button class="btn-reset" onclick="resetCurrentCheck()">Очистить выбор</button>
+        </div>
+        <button class="btn-restore" onclick="restoreDefaultTemplate()">Вернуть исходный шаблон позиций</button>
+    </div>
+</div>
+
+<div id="toast" class="toast">Скопировано! Можно отправлять в чат 🚀</div>
+
+<script>
+    const defaultItems = [
+        { id: 101, category: '1. Морозилка', name: 'Клубника замороженная', hint: 'если в запасе нет', needed: false, qty: 0, note: '' },
+        { id: 102, category: '1. Морозилка', name: 'Манго замороженное', hint: 'если в запасе нет', needed: false, qty: 0, note: '' },
+        { id: 103, category: '1. Морозилка', name: 'Вишня замороженная', hint: 'если в запасе нет (если в контейнере > половины — не надо)', needed: false, qty: 0, note: '' },
+        { id: 104, category: '1. Морозилка', name: 'Облепиха', hint: 'если в запасе нет хотя бы 1', needed: false, qty: 0, note: '' },
+        { id: 105, category: '1. Морозилка', name: 'Клюква', hint: 'если в запасе нет хотя бы 1', needed: false, qty: 0, note: '' },
+        { id: 106, category: '1. Морозилка', name: 'Лёд', hint: 'если в запасе совсем нет, а скоро выхи', needed: false, qty: 0, note: '' },
+
+        { id: 201, category: '2. Большой стеллаж', name: 'Мундштуки', hint: '', needed: false, qty: 0, note: '' },
+        { id: 202, category: '2. Большой стеллаж', name: 'Белые салфетки на бар', hint: '', needed: false, qty: 0, note: '' },
+        { id: 203, category: '2. Большой стеллаж', name: 'Сок Яблоко', hint: 'если осталась 1 коробка', needed: false, qty: 0, note: '' },
+        { id: 204, category: '2. Большой стеллаж', name: 'Сок Яблоко-Груша', hint: 'если меньше 3', needed: false, qty: 0, note: '' },
+        { id: 205, category: '2. Большой стеллаж', name: 'Сок Апельсин', hint: 'если осталось меньше 2', needed: false, qty: 0, note: '' },
+        { id: 206, category: '2. Большой стеллаж', name: 'Сок Яблоко-Персик', hint: 'если осталось меньше 2', needed: false, qty: 0, note: '' },
+        { id: 207, category: '2. Большой стеллаж', name: 'Вишневый сок (на пуэр)', hint: 'если меньше 5', needed: false, qty: 0, note: '' },
+        { id: 208, category: '2. Большой стеллаж', name: 'Сок Персиковый', hint: 'если меньше 2', needed: false, qty: 0, note: '' },
+        { id: 209, category: '2. Большой стеллаж', name: 'Моющее для раковины', hint: 'если нет в запасе', needed: false, qty: 0, note: '' },
+
+        { id: 301, category: '3. Барный холодильник', name: 'Маскарпоне', hint: 'уточнить у бармена', needed: false, qty: 0, note: '' },
+        { id: 302, category: '3. Барный холодильник', name: 'Сливки', hint: 'уточнить у бармена', needed: false, qty: 0, note: '' },
+        { id: 303, category: '3. Барный холодильник', name: 'Мята', hint: '', needed: false, qty: 0, note: '' },
+        { id: 304, category: '3. Барный холодильник', name: 'Апельсины', hint: 'если меньше 3', needed: false, qty: 0, note: '' },
+        { id: 305, category: '3. Барный холодильник', name: 'Лимоны', hint: 'если меньше 3', needed: false, qty: 0, note: '' },
+        { id: 306, category: '3. Барный холодильник', name: 'Лаймы', hint: 'если меньше 4', needed: false, qty: 0, note: '' },
+        { id: 307, category: '3. Барный холодильник', name: 'Груши', hint: 'если меньше 3', needed: false, qty: 0, note: '' },
+        { id: 308, category: '3. Барный холодильник', name: 'Бананы', hint: 'если меньше 3', needed: false, qty: 0, note: '' },
+        { id: 309, category: '3. Барный холодильник', name: 'Киви', hint: 'если меньше 4', needed: false, qty: 0, note: '' },
+
+        { id: 401, category: '4. Стеллаж в подсобке справа', name: 'Кофе', hint: 'если осталось меньше половины упаковки', needed: false, qty: 0, note: '' },
+        { id: 402, category: '4. Стеллаж в подсобке справа', name: 'Лимонный сок', hint: 'уточнить у бармена', needed: false, qty: 0, note: '' },
+        { id: 403, category: '4. Стеллаж в подсобке справа', name: 'Лаймовый сок', hint: 'уточнить у бармена', needed: false, qty: 0, note: '' },
+        { id: 404, category: '4. Стеллаж в подсобке справа', name: 'Сахар тростниковый', hint: 'если в контейнере меньше половины', needed: false, qty: 0, note: '' },
+        { id: 405, category: '4. Стеллаж в подсобке справа', name: 'Сахар белый', hint: 'если в контейнере меньше половины', needed: false, qty: 0, note: '' },
+        { id: 406, category: '4. Стеллаж в подсобке справа', name: 'Мёд', hint: '', needed: false, qty: 0, note: '' },
+        { id: 407, category: '4. Стеллаж в подсобке справа', name: 'Фисташки', hint: 'если меньше половины контейнера', needed: false, qty: 0, note: '' },
+        { id: 408, category: '4. Стеллаж в подсобке справа', name: 'Конфетки для собачки', hint: 'если очень мало в пачке', needed: false, qty: 0, note: '' },
+
+        { id: 501, category: '5. Холодильник с напитками', name: 'Red Bull', hint: 'если меньше 6', needed: false, qty: 0, note: '' },
+        { id: 502, category: '5. Холодильник с напитками', name: 'Burn оригинальный', hint: 'если меньше 6', needed: false, qty: 0, note: '' },
+        { id: 503, category: '5. Холодильник с напитками', name: 'Burn без сахара', hint: 'если меньше 6', needed: false, qty: 0, note: '' },
+        { id: 504, category: '5. Холодильник с напитками', name: 'Rich 1л — Яблоко', hint: 'если меньше 3', needed: false, qty: 0, note: '' },
+        { id: 505, category: '5. Холодильник с напитками', name: 'Rich 1л — Персик', hint: 'если меньше 3', needed: false, qty: 0, note: '' },
+        { id: 506, category: '5. Холодильник с напитками', name: 'Rich 1л — Апельсин', hint: 'если меньше 3', needed: false, qty: 0, note: '' },
+        { id: 507, category: '5. Холодильник с напитками', name: 'Rich 1л — Вишня', hint: 'если меньше 3', needed: false, qty: 0, note: '' },
+        { id: 508, category: '5. Холодильник с напитками', name: 'Rich 1л — Ананас', hint: 'если меньше 3', needed: false, qty: 0, note: '' },
+
+        { id: 601, category: '6. Серая тумбочка (верхний ящик)', name: 'Тряпки для протирания столов', hint: 'если осталась 1 пачка', needed: false, qty: 0, note: '' },
+        { id: 602, category: '6. Серая тумбочка (верхний ящик)', name: 'Губки', hint: 'проверить, могут быть на стеллаже', needed: false, qty: 0, note: '' },
+        { id: 701, category: '7. Касса', name: 'Размен в кассу', hint: 'если там только большие купюры', needed: false, qty: 0, note: '' }
+    ];
+
+    const STORAGE_KEY = 'zakup_v2_items';
+    let items = JSON.parse(localStorage.getItem(STORAGE_KEY)) || defaultItems;
+
+    function saveToStorage() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+        updateOutput();
+    }
+
+    function addNewItem() {
+        const nameEl = document.getElementById('newName');
+        const catEl = document.getElementById('newCat');
+        const hintEl = document.getElementById('newHint');
+
+        const name = nameEl.value.trim();
+        const category = catEl.value.trim() || 'Прочее';
+        const hint = hintEl.value.trim();
+
+        if (!name) return alert('Введите название позиции');
+
+        items.push({
+            id: Date.now(),
+            category,
+            name,
+            hint,
+            needed: false,
+            qty: 0,
+            note: ''
+        });
+
+        nameEl.value = '';
+        hintEl.value = '';
+        saveToStorage();
+        renderList();
+    }
+
+    function toggleNeed(id) {
+        const item = items.find(i => i.id === id);
+        if (!item) return;
+        item.needed = !item.needed;
+        if (!item.needed) {
+            item.qty = 0;
+            item.note = '';
+        }
+        saveToStorage();
+        renderList();
+    }
+
+    function changeQty(id, delta) {
+        const item = items.find(i => i.id === id);
+        if (!item) return;
+        const newQty = Math.max(0, Math.round((Number(item.qty || 0) + delta) * 10) / 10);
+        item.qty = newQty;
+        item.needed = newQty > 0;
+        saveToStorage();
+        renderList();
+    }
+
+    function setQty(id, val) {
+        const item = items.find(i => i.id === id);
+        if (!item) return;
+        const num = parseFloat(val);
+        item.qty = isNaN(num) || num < 0 ? 0 : num;
+        item.needed = item.qty > 0 || item.needed;
+        if (val === '0') item.needed = false;
+        saveToStorage();
+        
+        const row = document.getElementById('row-' + id);
+        if (row) row.className = 'item-row' + (item.needed ? ' active' : '');
+    }
+
+    function setNote(id, val) {
+        const item = items.find(i => i.id === id);
+        if (!item) return;
+        item.note = val.trim();
+        saveToStorage();
+    }
+
+    function deleteItem(id) {
+        if (!confirm('Удалить позицию из шаблона?')) return;
+        items = items.filter(i => i.id !== id);
+        saveToStorage();
+        renderList();
+    }
+
+    function resetCurrentCheck() {
+        if (!confirm('Сбросить все отмеченные позиции?')) return;
+        items.forEach(i => {
+            i.needed = false;
+            i.qty = 0;
+            i.note = '';
+        });
+        saveToStorage();
+        renderList();
+    }
+
+    function restoreDefaultTemplate() {
+        if (!confirm('Вернуть стандартный список позиций? Все ваши изменения шаблона сбросятся.')) return;
+        items = JSON.parse(JSON.stringify(defaultItems));
+        saveToStorage();
+        renderList();
+    }
+
+    function renderList() {
+        const container = document.getElementById('itemsContainer');
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        container.innerHTML = '';
+
+        const filtered = items.filter(i =>
+            i.name.toLowerCase().includes(query) ||
+            i.category.toLowerCase().includes(query) ||
+            (i.hint && i.hint.toLowerCase().includes(query))
+        );
+
+        const grouped = {};
+        filtered.forEach(item => {
+            if (!grouped[item.category]) grouped[item.category] = [];
+            grouped[item.category].push(item);
+        });
+
+        Object.keys(grouped).sort().forEach(cat => {
+            const block = document.createElement('div');
+            block.className = 'category-block';
+            block.innerHTML = `<div class="category-title">${cat}</div>`;
+
+            grouped[cat].forEach(item => {
+                const row = document.createElement('div');
+                row.id = 'row-' + item.id;
+                row.className = 'item-row' + (item.needed ? ' active' : '');
+
+                const hintHtml = item.hint ? `<div class="item-hint">💡 ${item.hint}</div>` : '';
+
+                row.innerHTML = `
+                    <div class="item-top">
+                        <div class="item-info" onclick="toggleNeed(${item.id})">
+                            <div class="item-name">${item.name}</div>
+                            ${hintHtml}
+                        </div>
+                        <div class="item-controls">
+                            <button class="check-btn" onclick="toggleNeed(${item.id})">
+                                ${item.needed ? '✓ Нужно' : 'Нужно'}
+                            </button>
+                            <button class="qty-btn" onclick="changeQty(${item.id}, -1)">−</button>
+                            <input type="number" step="any" class="qty-input" value="${item.qty > 0 ? item.qty : ''}" placeholder="кол-во"
+                                oninput="setQty(${item.id}, this.value)">
+                            <button class="qty-btn" onclick="changeQty(${item.id}, 1)">+</button>
+                            <button class="del-btn" title="Удалить" onclick="deleteItem(${item.id})">✕</button>
+                        </div>
+                    </div>
+                    <input type="text" class="item-note-input" placeholder="Уточнение в список (напр. сколько осталось / какие купюры)..."
+                        value="${item.note || ''}" oninput="setNote(${item.id}, this.value)">
+                `;
+                block.appendChild(row);
+            });
+            container.appendChild(block);
+        });
+
+        updateOutput();
+    }
+
+    function updateOutput() {
+        const activeItems = items.filter(i => i.needed || i.qty > 0);
+        document.getElementById('counter').innerText = `В списке: ${activeItems.length}`;
+
+        if (activeItems.length === 0) {
+            document.getElementById('outputText').value = '';
+            return;
+        }
+
+        const dateStr = new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+        let text = `🛒 ЗАКУП (${dateStr}):\\n\\n`;
+
+        activeItems.forEach((item, index) => {
+            let line = `${index + 1}. ${item.name}`;
+            if (item.qty > 0) {
+                line += ` — ${item.qty} шт/уп`;
+            }
+            if (item.note) {
+                line += ` (${item.note})`;
+            }
+            text += line + '\\n';
+        });
+
+        document.getElementById('outputText').value = text.trim();
+    }
+
+    function copyToClipboard() {
+        const text = document.getElementById('outputText').value;
+        if (!text) return alert('Сначала отметьте хотя бы одну недостающую позицию!');
+
+        navigator.clipboard.writeText(text).then(() => {
+            const toast = document.getElementById('toast');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }).catch(() => {
+            const textarea = document.getElementById('outputText');
+            textarea.select();
+            document.execCommand('copy');
+            alert('Скопировано!');
+        });
+    }
+
+    renderList();
+</script>
+
+</body>
+</html>"""
